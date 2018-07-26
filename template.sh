@@ -70,7 +70,7 @@ opts () {
              ;;
          i)
              version
-	     exit 0
+             exit 0
              ;;
          c)
              if [ -z ${OPTARG} ] ;
@@ -102,7 +102,7 @@ def_opts () {
         *)
             echo -ne "unrecognized option (${1}); printing usage instead\n\n"
             usage
-	    exit 1
+            exit 1
             ;;
     esac
 }
@@ -114,7 +114,7 @@ main () {
     ### END PREDEFINED BLOCK
 
     #code goes here
-    
+
 }
 
 #jump to main entry point
