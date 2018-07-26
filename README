@@ -1,1 +1,1 @@
-open with emacs +117:5 $f{name}
+open with emacs +117:5 ${fname}
