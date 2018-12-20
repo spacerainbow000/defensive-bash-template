@@ -33,6 +33,7 @@ EOF
 ### GENERIC OPTION PROCESSING
 opts () {
     local arg=
+    local n_args=
     for arg
     do
         local delim=""
@@ -45,16 +46,36 @@ opts () {
             --verbose)      args="${args}-v " ;;
             --debug)        args="${args}-x " ;;
             #pass through anything else
-            *) [[ "${arg:0:1}" == "-" ]] || delim="\""
+            *) [[ "${arg:0:1}" == "-" ]] || { delim="\"" && \
+                       n_args="${n_args} ${arg} "; }
                args="${args}${delim}${arg}${delim} ";;
         esac
     done
 
-    #reset the positional parameters to the short options
-    eval set -- ${args}
+    #generic argument string
+    GEN_OPTS="pvhxic:"
+
+    #reorder arguments for POSIX and move non-option arguments to the back of the list
+    ordered=$(eval getopt --quiet -o ${GEN_OPTS}${APP_OPTS} -- "${args}" | sed 's/--//')
+    n_difference=$(
+        diff \
+            --changed-group-format='%<' \
+            --unchanged-group-format='' \
+            --suppress-common-lines \
+            <(
+                echo ${n_args} | xargs printf '%s\n' | xargs printf '%s\n' | sort
+            ) \
+            <(
+                echo ${ordered} | xargs printf '%s\n' | xargs printf '%s\n' | sort
+            ) | \
+            xargs
+    )
+
+   #reset the positional parameters to the short options
+    eval set -- ${ordered}' -- '$(eval echo ${n_difference})
 
     #process generic args
-    while getopts ":${APP_OPTS}pvhxic:" OPTION
+    while getopts ":${APP_OPTS}${GEN_OPTS}" OPTION
     do
          case ${OPTION} in
          v)
@@ -109,14 +130,14 @@ def_opts () {
 
 main () {
     opts ${ARGS}
+    eval set -- ${ordered}' -- '${n_difference}
     shift $((${OPTIND} - 1))
 
     ### END PREDEFINED BLOCK
-
     #code goes here
-
+    
 }
 
 #jump to main entry point
-main $*
+main ${@}
 exit 0
