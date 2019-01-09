@@ -68,13 +68,10 @@ opts () {
     #push last glob
     GLOBLIST["${GLOBTAG}"]="${GLOB}"
 
-    #parse each glob, adding strings to STRINGGLOB and flag/argument pairs to ARGGLOB
     TCHAR=
     STRINGGLOB=
     declare -A FLAGGLOB
-    #break globs into strings and flag/argument blocks
     for f in ${!GLOBLIST[@]} ; do parseglob ${GLOBLIST[${f}]} ; done
-    #parse flags
     for f in ${!FLAGGLOB[@]} ; do default-flags ${FLAGGLOB[${f}]} ; done
 
     #reset STRINGGLOB if it's blank
