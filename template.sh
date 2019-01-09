@@ -174,7 +174,7 @@ _main () {
 main () {
     ### END PREDEFINED BLOCK
     #code goes here
-    
+    :
 }
 
 #jump to entry point wrapper
