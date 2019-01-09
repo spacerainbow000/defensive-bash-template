@@ -5,7 +5,7 @@
 ### IMMUTABLE GLOBAL VARIABLES
 readonly PROGNAME=$(basename $0)
 readonly PROGDIR=$(readlink -m $(dirname $0) 2>/dev/null)
-readonly ARGS="$@"
+readonly ARGS="${@}"
 
 ### VERSION INFO
 readonly VERSION="1.0"
@@ -30,114 +30,153 @@ usage () {
 EOF
 }
 
-### GENERIC OPTION PROCESSING
+### OPTION PROCESSING
+readonly DEFAULT_OPTS="pvxhic:"
+#declare application-specific getopt string here
+readonly APP_OPTS=""
 opts () {
-    local arg=
-    local n_args=
-    for arg
+    local ITER=
+    local GLOB=
+    local GLOBTAG=0
+    declare -A GLOBLIST
+    for ITER ;
     do
-        local delim=""
-        case "$arg" in
-            #translate --gnu-long-options to -g (short options)
-            --config)       args="${args}-c " ;;
-            --pretend)      args="${args}-p " ;;
-            --version)      args="${args}-i " ;;
-            --help)         usage && exit 0   ;;
-            --verbose)      args="${args}-v " ;;
-            --debug)        args="${args}-x " ;;
-            #pass through anything else
-            *) [[ "${arg:0:1}" == "-" ]] || { delim="\"" && \
-                       n_args="${n_args} ${arg} "; }
-               args="${args}${delim}${arg}${delim} ";;
-        esac
+        if [[ "${ITER:0:1}" == "-" ]] ;
+        then
+            #push current glob so next argument glob can start
+            GLOBLIST["${GLOBTAG}"]="${GLOB}"
+
+            case "${ITER}"
+            in
+                #translate --gnu-long-options to -g (short options)
+                --config)       GLOB="-c"       ;;
+                --pretend)      GLOB="-p"       ;;
+                --version)      GLOB="-i"       ;;
+                --help)         usage && exit 0 ;;
+                --verbose)      GLOB="-v"       ;;
+                --debug)        GLOB="-x"       ;;
+                #program-specific long opts
+                #pass through anything else
+                *)              GLOB="${ITER}"  ;;
+            esac
+        else
+            GLOB="${GLOB} ${ITER} "
+        fi
+	GLOBTAG=$((GLOBTAG + 1))
     done
 
-    #generic argument string
-    GEN_OPTS="pvhxic:"
+    #push last glob
+    GLOBLIST["${GLOBTAG}"]="${GLOB}"
 
-    #reorder arguments for POSIX and move non-option arguments to the back of the list
-    ordered=$(eval getopt --quiet -o ${GEN_OPTS}${APP_OPTS} -- "${args}" | sed 's/--//')
-    n_difference=$(
-        diff \
-            --changed-group-format='%<' \
-            --unchanged-group-format='' \
-            --suppress-common-lines \
-            <(
-                echo ${n_args} | xargs printf '%s\n' | xargs printf '%s\n' | sort
-            ) \
-            <(
-                echo ${ordered} | xargs printf '%s\n' | xargs printf '%s\n' | sort
-            ) | \
-            xargs
-    )
+    #parse each glob, adding strings to STRINGGLOB and flag/argument pairs to ARGGLOB
+    TCHAR=
+    STRINGGLOB=
+    declare -A FLAGGLOB
+    #break globs into strings and flag/argument blocks
+    for f in ${!GLOBLIST[@]} ; do parseglob ${GLOBLIST[${f}]} ; done
+    #parse flags
+    for f in ${!FLAGGLOB[@]} ; do default-flags ${FLAGGLOB[${f}]} ; done
 
-   #reset the positional parameters to the short options
-    eval set -- ${ordered}' -- '$(eval echo ${n_difference})
-
-    #process generic args
-    while getopts ":${APP_OPTS}${GEN_OPTS}" OPTION
-    do
-         case ${OPTION} in
-         v)
-             readonly VERBOSE=1
-             ;;
-         h)
-             usage
-             exit 0
-             ;;
-         x)
-             readonly DEBUG='-x'
-             set -x
-             ;;
-         i)
-             version
-             exit 0
-             ;;
-         c)
-             if [ -z ${OPTARG} ] ;
-             then
-                 echo "missing configuration file for option -c. exiting"
-                 exit 1
-             fi
-             readonly CONFIG_FILE=${OPTARG}
-             ;;
-         p)
-             readonly PRETEND=1
-             ;;
-         *)
-             def_opts ${OPTION} ${OPTARG}
-             ;;
-        esac
-    done
-
-    return 0
+    #reset STRINGGLOB if it's blank
+    [ -z "${STRINGGLOB// }" ] && STRINGGLOB=
 }
+parseglob () {
+    OPTIND=1
+    getopts ":${APP_OPTS}${DEFAULT_OPTS}" TCHAR $(echo "${@}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    case ${TCHAR}
+    in
+        \?)
+            #glob isn't flag/flag with argument, add to STRINGGLOB
+            STRINGGLOB="${STRINGGLOB} ${@} "
+	    return
+            ;;
+        *)
+            FLAGGLOB["-${TCHAR}"]="-${TCHAR}"
 
-### APP-SPECIFIC OPT DEFINITIONS
-readonly APP_OPTS="" #app-specific opt single-char flags
-def_opts () {
-    local OPTARG=${2}
-    case ${1} in
-        #define app-level flags and options here; must also be specified above or option will be treated as unrecognized!
+            if [ -z ${OPTARG} ] ;
+            then
+		#no argument to flag, add remaining to STRINGGLOB and return
+                shift 1
+		[ ${#} -ge 1 ] && STRINGGLOB="${STRINGGLOB} ${@}"
+		return
+            else
+                #flag has argument - add to FLAGGLOB
+                FLAGGLOB["-${TCHAR}"]="-${TCHAR} ${OPTARG}"
+		shift 2
+            fi
+            ;;
+    esac
+    #anything remaining isn't a flag/argument to a flag, add to STRINGGLOB
+    [ ${#} -ge 1 ] && STRINGGLOB="${STRINGGLOB} ${@}"
+}
+default-flags () {
+    FLAG="${1}"
+    shift 1
+    OPTARG=${@}
+    case ${FLAG/-/} in
+        v)
+            readonly VERBOSE=1
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        x)
+            readonly DEBUG='-x'
+            shopt -s extdebug
+            set -x
+            ;;
+        i)
+            version
+            exit 0
+            ;;
+        c)
+            if [ -z ${OPTARG} ] ;
+            then
+                echo "missing configuration file for option -c. exiting"
+                exit 1
+            fi
+            if [ ! -f ${OPTARG} ] ;
+            then
+                echo "configuration file ${OPTARG} doesn't exist or is unreadable. exiting"
+                exit 1
+            fi
+            readonly CONFIG_FILE=${OPTARG}
+            ;;
+        p)
+            readonly PRETEND=1
+            ;;
+        *)
+            program-flags ${OPTION} ${OPTARG}
+            ;;
+    esac
+}
+program-flags () {
+    FLAG="${1}"
+    shift 1
+    OPTARG=${@}
+    case ${FLAG/-/} in
+        #define app-level flags and options here
 
         *)
-            echo -ne "unrecognized option (${1}); printing usage instead\n\n"
+            echo -ne "unrecognized option ${FLAG}; printing usage instead\n\n"
             usage
             exit 1
             ;;
     esac
 }
 
+_main () {
+    opts ${@}
+    #jump to main entry point
+    main ${STRINGGLOB}
+}
 main () {
-    opts ${ARGS}
-    eval set -- ${ordered}' -- '${n_difference}
-    shift $((${OPTIND} - 1))
-
     ### END PREDEFINED BLOCK
     #code goes here
     
 }
 
-#jump to main entry point
-main ${@}
+#jump to entry point wrapper
+_main ${@}
 exit 0
