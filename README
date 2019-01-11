@@ -1,1 +1,1 @@
-open with emacs +138:5 ${fname}
+emacs +174:5 ${fname}
