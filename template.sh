@@ -144,7 +144,7 @@ default-flags () {
             readonly PRETEND=1
             ;;
         *)
-            program-flags ${OPTION} ${OPTARG}
+            program-flags ${FLAG} ${OPTARG}
             ;;
     esac
 }
