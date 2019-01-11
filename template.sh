@@ -79,7 +79,7 @@ opts () {
 }
 parseglob () {
     OPTIND=1
-    getopts ":${APP_OPTS}${DEFAULT_OPTS}" TCHAR $(echo "${@}" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+    getopts ":${APP_OPTS}${DEFAULT_OPTS}" TCHAR "${@}"
     case ${TCHAR}
     in
         \?)
