@@ -38,7 +38,7 @@ opts () {
     local ITER=
     local GLOB=
     local GLOBTAG=0
-    declare -A GLOBLIST
+    declare -A GLOBLIST #local
     for ITER ;
     do
         if [[ "${ITER:0:1}" == "-" ]] ;
@@ -68,7 +68,6 @@ opts () {
     #push last glob
     GLOBLIST["${GLOBTAG}"]="${GLOB}"
 
-    TCHAR=
     STRINGGLOB=
     declare -A FLAGGLOB
     for f in ${!GLOBLIST[@]} ; do parseglob ${GLOBLIST[${f}]} ; done
@@ -78,7 +77,8 @@ opts () {
     [ -z "${STRINGGLOB// }" ] && STRINGGLOB=
 }
 parseglob () {
-    OPTIND=1
+    local TCHAR=
+    local OPTIND=1
     getopts ":${APP_OPTS}${DEFAULT_OPTS}" TCHAR "${@}"
     case ${TCHAR}
     in
@@ -107,9 +107,9 @@ parseglob () {
     [ ${#} -ge 1 ] && STRINGGLOB="${STRINGGLOB} ${@}"
 }
 default-flags () {
-    FLAG="${1}"
+    local FLAG="${1}"
     shift 1
-    OPTARG=${@}
+    local OPTARG=${@}
     case ${FLAG/-/} in
         v)
             readonly VERBOSE=1
@@ -149,9 +149,9 @@ default-flags () {
     esac
 }
 program-flags () {
-    FLAG="${1}"
+    local FLAG="${1}"
     shift 1
-    OPTARG=${@}
+    local OPTARG=${@}
     case ${FLAG/-/} in
         #define app-level flags and options here
 
@@ -163,12 +163,22 @@ program-flags () {
     esac
 }
 
+#deletable once script is complete
+todo () {
+    echo "TODO ENCOUNTERED"
+    echo "CALLING FUNCTION:"${FUNCNAME[1]}" "${BASH_SOURCE[0]}
+    echo "    AT: "${BASH_LINENO}
+    [[ ${VERBOSE} == 1 ]] && echo -n "    IN CALL STACK:" && echo "${FUNCNAME[@]}"
+}
+
 _main () {
     opts ${@}
     #jump to main entry point
     main ${STRINGGLOB}
 }
 main () {
+    unset STRINGGLOB
+    unset FLAGGLOB
     ### END PREDEFINED BLOCK
     #code goes here
     :
