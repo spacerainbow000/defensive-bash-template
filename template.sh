@@ -3,9 +3,9 @@
 # Jama Software #
 
 ### IMMUTABLE GLOBAL VARIABLES
-readonly PROGNAME=$(basename $0)
-readonly PROGDIR=$(readlink -m $(dirname $0) 2>/dev/null)
-readonly ARGS="${@}"
+readonly PROGNAME=$(basename "${0}")
+readonly PROGDIR=$(readlink -m "$(dirname "${0}")" 2>/dev/null)
+readonly ARGS="${*}"
 
 ### VERSION INFO
 readonly VERSION="1.0"
@@ -36,80 +36,96 @@ readonly DEFAULT_OPTS="pvxhic:"
 readonly APP_OPTS=""
 opts () {
     local ITER=
-    local GLOB=
-    local GLOBTAG=0
-    declare -A GLOBLIST #local
+    local BLOCK=
+    local BLOCKTAG=0
+    declare -A BLOCKLIST #local
     for ITER ;
     do
         if [[ "${ITER:0:1}" == "-" ]] ;
         then
-            #push current glob so next argument glob can start
-            GLOBLIST["${GLOBTAG}"]="${GLOB}"
+            #push current block so next argument block can start
+            BLOCKLIST["${BLOCKTAG}"]="${BLOCK}"
 
             case "${ITER}"
             in
                 #translate --gnu-long-options to -g (short options)
-                --config)       GLOB="-c"       ;;
-                --pretend)      GLOB="-p"       ;;
-                --version)      GLOB="-i"       ;;
+                --config)       BLOCK="-c"       ;;
+                --pretend)      BLOCK="-p"       ;;
+                --version)      BLOCK="-i"       ;;
                 --help)         usage && exit 0 ;;
-                --verbose)      GLOB="-v"       ;;
-                --debug)        GLOB="-x"       ;;
+                --verbose)      BLOCK="-v"       ;;
+                --debug)        BLOCK="-x"       ;;
                 #program-specific long opts
                 #pass through anything else
-                *)              GLOB="${ITER}"  ;;
+                *)              BLOCK="${ITER}"  ;;
             esac
         else
-            GLOB="${GLOB} ${ITER} "
+            BLOCK="${BLOCK} ${ITER} "
         fi
-	GLOBTAG=$((GLOBTAG + 1))
+	BLOCKTAG=$((BLOCKTAG + 1))
     done
 
-    #push last glob
-    GLOBLIST["${GLOBTAG}"]="${GLOB}"
+    #push last block
+    BLOCKLIST["${BLOCKTAG}"]="${BLOCK}"
 
-    STRINGGLOB=
-    declare -A FLAGGLOB
-    for f in ${!GLOBLIST[@]} ; do parseglob ${GLOBLIST[${f}]} ; done
-    for f in ${!FLAGGLOB[@]} ; do default-flags ${FLAGGLOB[${f}]} ; done
+    STRINGBLOCK=
+    declare -A FLAGBLOCK
+    for f in "${!BLOCKLIST[@]}" ; do parseblock "${BLOCKLIST[${f}]}" ; done
+    for f in "${!FLAGBLOCK[@]}" ; do default-flags "${FLAGBLOCK[${f}]}" ; done
 
-    #reset STRINGGLOB if it's blank
-    [ -z "${STRINGGLOB// }" ] && STRINGGLOB=
+    #reset STRINGBLOCK if it's blank
+    [ -z "${STRINGBLOCK// }" ] && STRINGBLOCK=
 }
-parseglob () {
+parseblock () {
     local TCHAR=
     local OPTIND=1
     getopts ":${APP_OPTS}${DEFAULT_OPTS}" TCHAR "${@}"
     case ${TCHAR}
     in
         \?)
-            #glob isn't flag/flag with argument, add to STRINGGLOB
-            STRINGGLOB="${STRINGGLOB} ${@} "
+            #block isn't flag/flag with argument, add to STRINGBLOCK
+            STRINGBLOCK="${STRINGBLOCK} ${*} "
 	    return
             ;;
         *)
-            FLAGGLOB["-${TCHAR}"]="-${TCHAR}"
+            FLAGBLOCK["-${TCHAR}"]="-${TCHAR}"
 
-            if [ -z ${OPTARG} ] ;
-            then
-		#no argument to flag, add remaining to STRINGGLOB and return
-                shift 1
-		[ ${#} -ge 1 ] && STRINGGLOB="${STRINGGLOB} ${@}"
-		return
-            else
-                #flag has argument - add to FLAGGLOB
-                FLAGGLOB["-${TCHAR}"]="-${TCHAR} ${OPTARG}"
-		shift 2
-            fi
+	    #test whether compound short option given (-xv)
+	    local OPTARG_P=${OPTARG} #next getopts will change OPTARG, save it
+	    local TCHAR_P=${TCHAR} #next getopts will change TCHAR, save it
+	    getopts ":${APP_OPTS}${DEFAULT_OPTS}" TCHAR "${@}"
+	    case ${TCHAR}
+	    in
+		\?)
+		    #no compound shortopt
+		    if [ -z "${OPTARG_P}" ] ;
+		    then
+			#no argument to flag, add remaining to STRINGBLOCK and return
+			shift 1
+			[ ${#} -ge 1 ] && STRINGBLOCK="${STRINGBLOCK} ${*}"
+			return
+		    else
+			#flag has argument - add to FLAGBLOCK
+			FLAGBLOCK["-${TCHAR_P}"]="-${TCHAR_P} ${OPTARG_P}"
+			shift 2
+		    fi
+		    ;;
+		*)
+		    #compound shortopt detected; parseblock again on next arg and return
+		    local ATWRAP="${*}"
+		    parseblock "-${ATWRAP:2}"
+		    return
+		    ;;
+	    esac
             ;;
     esac
-    #anything remaining isn't a flag/argument to a flag, add to STRINGGLOB
-    [ ${#} -ge 1 ] && STRINGGLOB="${STRINGGLOB} ${@}"
+    #anything remaining isn't a flag/argument to a flag, add to STRINGBLOCK
+    [ ${#} -ge 1 ] && STRINGBLOCK="${STRINGBLOCK} ${*}"
 }
 default-flags () {
     local FLAG="${1}"
     shift 1
-    local OPTARG=${@}
+    local OPTARG="${*}"
     case ${FLAG/-/} in
         v)
             readonly VERBOSE=1
@@ -128,12 +144,12 @@ default-flags () {
             exit 0
             ;;
         c)
-            if [ -z ${OPTARG} ] ;
+            if [ -z "${OPTARG}" ] ;
             then
                 echo "missing configuration file for option -c. exiting"
                 exit 1
             fi
-            if [ ! -f ${OPTARG} ] ;
+            if [ ! -f "${OPTARG}" ] ;
             then
                 echo "configuration file ${OPTARG} doesn't exist or is unreadable. exiting"
                 exit 1
@@ -144,14 +160,14 @@ default-flags () {
             readonly PRETEND=1
             ;;
         *)
-            program-flags ${FLAG} ${OPTARG}
+            program-flags "${FLAG}" "${OPTARG}"
             ;;
     esac
 }
 program-flags () {
     local FLAG="${1}"
     shift 1
-    local OPTARG=${@}
+    local OPTARG=${*}
     case ${FLAG/-/} in
         #define app-level flags and options here
 
@@ -166,24 +182,24 @@ program-flags () {
 #deletable once script is complete
 todo () {
     echo "TODO ENCOUNTERED"
-    echo "CALLING FUNCTION:"${FUNCNAME[1]}" "${BASH_SOURCE[0]}
-    echo "    AT: "${BASH_LINENO}
+    echo "CALLING FUNCTION:${FUNCNAME[1]} ${BASH_SOURCE[0]}"
+    echo "    AT: ${BASH_LINENO[0]}"
     [[ ${VERBOSE} == 1 ]] && echo -n "    IN CALL STACK:" && echo "${FUNCNAME[@]}"
 }
 
 _main () {
-    opts ${@}
+    opts "${@}"
     #jump to main entry point
-    main ${STRINGGLOB}
+    main "${STRINGBLOCK}"
 }
 main () {
-    unset STRINGGLOB
-    unset FLAGGLOB
+    unset STRINGBLOCK
+    unset FLAGBLOCK
     ### END PREDEFINED BLOCK
     #code goes here
     :
 }
 
 #jump to entry point wrapper
-_main ${@}
+_main "${@}"
 exit 0
