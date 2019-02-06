@@ -71,7 +71,7 @@ opts () {
     STRINGBLOCK=
     declare -A FLAGBLOCK
     for f in "${!BLOCKLIST[@]}" ; do parseblock "${BLOCKLIST[${f}]}" ; done
-    for f in "${!FLAGBLOCK[@]}" ; do default-flags "${FLAGBLOCK[${f}]}" ; done
+    for f in "${!FLAGBLOCK[@]}" ; do default_flags "${FLAGBLOCK[${f}]}" ; done
 
     #reset STRINGBLOCK if it's blank
     [ -z "${STRINGBLOCK// }" ] && STRINGBLOCK=
@@ -122,7 +122,7 @@ parseblock () {
     #anything remaining isn't a flag/argument to a flag, add to STRINGBLOCK
     [ ${#} -ge 1 ] && STRINGBLOCK="${STRINGBLOCK} ${*}"
 }
-default-flags () {
+default_flags () {
     local FLAG="${1}"
     shift 1
     local OPTARG="${*}"
@@ -160,11 +160,11 @@ default-flags () {
             readonly PRETEND=1
             ;;
         *)
-            program-flags "${FLAG}" "${OPTARG}"
+            program_flags "${FLAG}" "${OPTARG}"
             ;;
     esac
 }
-program-flags () {
+program_flags () {
     local FLAG="${1}"
     shift 1
     local OPTARG=${*}
