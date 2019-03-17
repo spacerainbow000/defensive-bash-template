@@ -32,31 +32,32 @@ EOF
 
 ### OPTION PROCESSING
 readonly DEFAULT_OPTS="pvxhic:"
-#declare application-specific getopt string here
+# application-specific getopt string
 readonly APP_OPTS=""
 opts () {
     local ITER=
     local BLOCK=
     local BLOCKTAG=0
-    declare -A BLOCKLIST #local
+    declare -A BLOCKLIST # local
     for ITER ;
     do
         if [[ "${ITER:0:1}" == "-" ]] ;
         then
-            #push current block so next argument block can start
+            # push current block so next argument block can start
             BLOCKLIST["${BLOCKTAG}"]="${BLOCK}"
 
             case "${ITER}"
             in
-                #translate --gnu-long-options to -g (short options)
+                # translate --gnu-long-options to -g (short options)
                 --config)       BLOCK="-c"       ;;
                 --pretend)      BLOCK="-p"       ;;
                 --version)      BLOCK="-i"       ;;
                 --help)         usage && exit 0 ;;
                 --verbose)      BLOCK="-v"       ;;
                 --debug)        BLOCK="-x"       ;;
-                #program-specific long opts
-                #pass through anything else
+                # program-specific long opts
+
+                # pass through anything else
                 *)              BLOCK="${ITER}"  ;;
             esac
         else
@@ -65,7 +66,7 @@ opts () {
 	BLOCKTAG=$((BLOCKTAG + 1))
     done
 
-    #push last block
+    # push last block
     BLOCKLIST["${BLOCKTAG}"]="${BLOCK}"
 
     STRINGBLOCK=
@@ -73,7 +74,7 @@ opts () {
     for f in "${!BLOCKLIST[@]}" ; do parseblock "${BLOCKLIST[${f}]}" ; done
     for f in "${!FLAGBLOCK[@]}" ; do default_flags "${FLAGBLOCK[${f}]}" ; done
 
-    #reset STRINGBLOCK if it's blank
+    # reset STRINGBLOCK if it's blank
     [ -z "${STRINGBLOCK// }" ] && STRINGBLOCK=
 }
 parseblock () {
@@ -83,35 +84,35 @@ parseblock () {
     case ${TCHAR}
     in
         \?)
-            #block isn't flag/flag with argument, add to STRINGBLOCK
+            # block isn't flag/flag with argument, add to STRINGBLOCK
             STRINGBLOCK="${STRINGBLOCK} ${*} "
 	    return
             ;;
         *)
             FLAGBLOCK["-${TCHAR}"]="-${TCHAR}"
 
-	    #test whether compound short option given (-xv)
-	    local OPTARG_P=${OPTARG} #next getopts will change OPTARG, save it
-	    local TCHAR_P=${TCHAR} #next getopts will change TCHAR, save it
+	    # test whether compound short option given (-xv)
+	    local OPTARG_P=${OPTARG} # next getopts will change OPTARG, save it
+	    local TCHAR_P=${TCHAR} # next getopts will change TCHAR, save it
 	    getopts ":${APP_OPTS}${DEFAULT_OPTS}" TCHAR "${@}"
 	    case ${TCHAR}
 	    in
 		\?)
-		    #no compound shortopt
+		    # no compound shortopt
 		    if [ -z "${OPTARG_P}" ] ;
 		    then
-			#no argument to flag, add remaining to STRINGBLOCK and return
+			# no argument to flag, add remaining to STRINGBLOCK and return
 			shift 1
 			[ ${#} -ge 1 ] && STRINGBLOCK="${STRINGBLOCK} ${*}"
 			return
 		    else
-			#flag has argument - add to FLAGBLOCK
+			# flag has argument - add to FLAGBLOCK
 			FLAGBLOCK["-${TCHAR_P}"]="-${TCHAR_P} ${OPTARG_P}"
 			shift 2
 		    fi
 		    ;;
 		*)
-		    #compound shortopt detected; parseblock again on next arg and return
+		    # compound shortopt detected; parseblock again on next arg and return
 		    local ATWRAP="${*}"
 		    parseblock "-${ATWRAP:2}"
 		    return
@@ -119,7 +120,7 @@ parseblock () {
 	    esac
             ;;
     esac
-    #anything remaining isn't a flag/argument to a flag, add to STRINGBLOCK
+    # anything remaining isn't a flag/argument to a flag, add to STRINGBLOCK
     [ ${#} -ge 1 ] && STRINGBLOCK="${STRINGBLOCK} ${*}"
 }
 default_flags () {
@@ -170,7 +171,7 @@ program_flags () {
     shift 1
     local OPTARG=${*}
     case ${FLAG/-/} in
-        #define app-level flags and options here
+        # define app-level flags and options here
 
         *)
             echo -ne "unrecognized option ${FLAG}; printing usage instead\n\n"
@@ -180,7 +181,7 @@ program_flags () {
     esac
 }
 
-#deletable once script is complete
+# deletable once script is complete
 todo () {
     echo "TODO ENCOUNTERED"
     echo "CALLING FUNCTION:${FUNCNAME[1]} ${BASH_SOURCE[0]}"
@@ -188,19 +189,25 @@ todo () {
     [[ ${VERBOSE} == 1 ]] && echo -n "    IN CALL STACK:" && echo "${FUNCNAME[@]}"
 }
 
+cleanup () {
+    # cleanup function that runs when C-c is pressed
+    :
+}
+
 _main () {
     opts "${@}"
-    #jump to main entry point
+    trap cleanup INT
+    # jump to main entry point
     main "${STRINGBLOCK}"
 }
 main () {
     unset STRINGBLOCK
     unset FLAGBLOCK
     ### END PREDEFINED BLOCK
-    #code goes here
+    # code goes here
     :
 }
 
-#jump to entry point wrapper
+# jump to entry point wrapper
 _main "${@}"
 exit 0
