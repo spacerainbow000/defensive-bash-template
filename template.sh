@@ -160,7 +160,8 @@ default_flags () {
             readonly PRETEND=1
             ;;
         *)
-            program_flags "${FLAG}" "${OPTARG}"
+	    # shellcheck disable=SC2086
+            program_flags ${FLAG} ${OPTARG}
             ;;
     esac
 }
