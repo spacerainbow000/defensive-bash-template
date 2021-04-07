@@ -1,6 +1,5 @@
 #!/bin/bash
 #  Abby Embree  #
-# Jama Software #
 
 ### IMMUTABLE GLOBAL VARIABLES
 readonly PROGNAME=$(basename "${0}")
