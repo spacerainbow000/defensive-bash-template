@@ -70,8 +70,8 @@ opts () {
 
     STRINGBLOCK=
     declare -A FLAGBLOCK
-    for f in "${!BLOCKLIST[@]}" ; do parseblock "${BLOCKLIST[${f}]}" ; done
-    for f in "${!FLAGBLOCK[@]}" ; do default_flags "${FLAGBLOCK[${f}]}" ; done
+    for f in "${!BLOCKLIST[@]}" ; do parseblock ${BLOCKLIST[${f}]} ; done
+    for f in "${!FLAGBLOCK[@]}" ; do default_flags ${FLAGBLOCK[${f}]} ; done
 
     # reset STRINGBLOCK if it's blank
     [ -z "${STRINGBLOCK// }" ] && STRINGBLOCK=
