@@ -211,6 +211,7 @@ _main () {
 main () {
     unset STRINGBLOCK
     unset FLAGBLOCK
+    unset FLAGCOUNT
     ### END PREDEFINED BLOCK
     # code goes here
     :
