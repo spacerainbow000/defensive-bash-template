@@ -70,8 +70,9 @@ opts () {
 
     STRINGBLOCK=
     declare -A FLAGBLOCK
+    declare -A FLAGCOUNT
     for f in "${!BLOCKLIST[@]}" ; do parseblock ${BLOCKLIST[${f}]} ; done
-    for f in "${!FLAGBLOCK[@]}" ; do default_flags ${FLAGBLOCK[${f}]} ; done
+    for f in "${!FLAGBLOCK[@]}" ; do for g in $(seq 1 ${FLAGCOUNT[${f}]}) ; do default_flags ${FLAGBLOCK[${f}]} ; done ; done
 
     # reset STRINGBLOCK if it's blank
     [ -z "${STRINGBLOCK// }" ] && STRINGBLOCK=
@@ -88,6 +89,13 @@ parseblock () {
 	    return
             ;;
         *)
+	    if [[ ${FLAGBLOCK["-${TCHAR}"]} == "-${TCHAR}" ]] ;
+            then
+                # hit repeat flag (as in -vvv), increment count                                                                                                   
+                FLAGCOUNT["-${TCHAR}"]=$(( FLAGCOUNT["-${TCHAR}"] + 1 ))
+            else
+                FLAGCOUNT["-${TCHAR}"]=1
+            fi
             FLAGBLOCK["-${TCHAR}"]="-${TCHAR}"
 
 	    # test whether compound short option given (-xv)
@@ -129,6 +137,7 @@ default_flags () {
     case ${FLAG/-/} in
         v)
             readonly VERBOSE=1
+	    VERBOSITY=$(( ${VERBOSITY} + 1 ))
             ;;
         h)
             usage
@@ -208,5 +217,6 @@ main () {
 }
 
 # jump to entry point wrapper
+VERBOSITY=0
 _main "${@}"
 exit 0
