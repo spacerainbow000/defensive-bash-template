@@ -1,9 +1,8 @@
 #!/bin/bash
-# shellcheck disable=2012                                                                                                                                         
-# shellcheck disable=2046                                                                                                                                         
-# shellcheck disable=2086                                                                                                                                         
-# shellcheck disable=2155                                                                                                                                         
-# shellcheck disable=2164 
+# shellcheck disable=SC2012
+# shellcheck disable=SC2046
+# shellcheck disable=SC2086
+# shellcheck disable=SC2164
 #  Abby Embree  #
 
 ### IMMUTABLE GLOBAL VARIABLES
