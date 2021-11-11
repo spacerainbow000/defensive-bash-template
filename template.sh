@@ -1,10 +1,26 @@
 #!/bin/bash
+# shellcheck disable=2012                                                                                                                                         
+# shellcheck disable=2046                                                                                                                                         
+# shellcheck disable=2086                                                                                                                                         
+# shellcheck disable=2155                                                                                                                                         
+# shellcheck disable=2164 
 #  Abby Embree  #
 
 ### IMMUTABLE GLOBAL VARIABLES
 readonly PROGNAME=$(basename "${0}")
-readonly PROGDIR=$(readlink -m "$(dirname "${0}")" 2>/dev/null)
-readonly ARGS="${*}"
+_SCRIPTLOC=${BASH_SOURCE[0]}
+while [ -L ${_SCRIPTLOC} ] ;
+do
+    _SCRIPTLOC=$(readlink ${_SCRIPTLOC})
+done
+_SCRIPTLOC=$(dirname ${_SCRIPTLOC})
+if [[ "${_SCRIPTLOC}" == "." ]] ;
+then
+    readonly SCRIPTLOC=$(pwd)
+else
+    readonly SCRIPTLOC=_SCRIPTLOC
+fi
+unset _SCRIPTLOC
 
 ### VERSION INFO
 readonly VERSION="1.0"
