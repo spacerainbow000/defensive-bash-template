@@ -2,6 +2,7 @@
 # shellcheck disable=SC2012
 # shellcheck disable=SC2046
 # shellcheck disable=SC2086
+# shellcheck disable=SC2155
 # shellcheck disable=SC2164
 #  Abby Embree  #
 
@@ -152,7 +153,7 @@ default_flags () {
     case ${FLAG/-/} in
         v)
             readonly VERBOSE=1
-	    VERBOSITY=$(( ${VERBOSITY} + 1 ))
+	    VERBOSITY=$(( VERBOSITY + 1 ))
             ;;
         h)
             usage
@@ -217,6 +218,11 @@ cleanup () {
     :
 }
 
+dependencies () {
+    # check for required dependencies before run
+    :
+}
+
 _main () {
     opts "${@}"
     trap cleanup INT
@@ -227,10 +233,12 @@ main () {
     unset STRINGBLOCK
     unset FLAGBLOCK
     unset FLAGCOUNT
+    dependencies
     ### END PREDEFINED BLOCK
     # code goes here
     :
 }
+
 
 # jump to entry point wrapper
 VERBOSITY=0
