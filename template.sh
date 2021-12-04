@@ -8,19 +8,6 @@
 
 ### IMMUTABLE GLOBAL VARIABLES
 readonly PROGNAME=$(basename "${0}")
-_SCRIPTLOC=${BASH_SOURCE[0]}
-while [ -L ${_SCRIPTLOC} ] ;
-do
-    _SCRIPTLOC=$(readlink ${_SCRIPTLOC})
-done
-_SCRIPTLOC=$(dirname ${_SCRIPTLOC})
-if [[ "${_SCRIPTLOC}" == "." ]] ;
-then
-    readonly SCRIPTLOC=$(pwd)
-else
-    readonly SCRIPTLOC=_SCRIPTLOC
-fi
-unset _SCRIPTLOC
 
 ### VERSION INFO
 readonly VERSION="1.0"
@@ -226,19 +213,34 @@ dependencies () {
 _main () {
     opts "${@}"
     trap cleanup INT
-    # jump to main entry point
-    main "${STRINGBLOCK}"
-}
-main () {
+    
+    _SCRIPTLOC=${BASH_SOURCE[0]}
+    while [ -L ${_SCRIPTLOC} ] ;
+    do
+        _SCRIPTLOC=$(readlink ${_SCRIPTLOC})
+    done
+    _SCRIPTLOC=$(dirname ${_SCRIPTLOC})
+    if [[ "${_SCRIPTLOC}" == "." ]] ;
+    then
+        readonly SCRIPTLOC=$(pwd)
+    else
+        readonly SCRIPTLOC=_SCRIPTLOC
+    fi
+    unset _SCRIPTLOC
+
     unset STRINGBLOCK
     unset FLAGBLOCK
     unset FLAGCOUNT
     dependencies
+    
+    # jump to main entry point
+    main "${STRINGBLOCK}"
+}
+main () {
     ### END PREDEFINED BLOCK
     # code goes here
     :
 }
-
 
 # jump to entry point wrapper
 VERBOSITY=0
