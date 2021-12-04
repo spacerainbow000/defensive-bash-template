@@ -224,7 +224,7 @@ _main () {
     then
         readonly SCRIPTLOC=$(pwd)
     else
-        readonly SCRIPTLOC=_SCRIPTLOC
+        readonly SCRIPTLOC=${_SCRIPTLOC}
     fi
     unset _SCRIPTLOC
 
